@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<project name="granite" default="all">
+	<property file="local.build.properties" />
+	<property file="build.properties" />
+
+	<!-- Compiler options -->
+	<patternset id="javac.excluded" />
+	<patternset id="javac.resources">
+		<include name="**/?*.txt" />
+		<include name="**/?*.license" />
+	</patternset>
+	<!-- JDK definitions -->
+
+	<path id="jdk.classpath">
+		<fileset dir="${jdk.home}">
+			<include name="jre/lib/charsets.jar" />
+			<include name="jre/lib/deploy.jar" />
+			<include name="jre/lib/javaws.jar" />
+			<include name="jre/lib/jce.jar" />
+			<include name="jre/lib/jsse.jar" />
+			<include name="jre/lib/plugin.jar" />
+			<include name="jre/lib/rt.jar" />
+			<include name="jre/lib/ext/dnsns.jar" />
+			<include name="jre/lib/ext/localedata.jar" />
+			<include name="jre/lib/ext/sunjce_provider.jar" />
+			<include name="jre/lib/ext/sunpkcs11.jar" />
+		</fileset>
+	</path>
+
+	<property name="project.jdk.home" value="${jdk.home}" />
+	<property name="project.jdk.classpath" value="jdk.classpath" />
+	<!-- Project Libraries -->
+	<!-- Global Libraries -->
+
+	<dirname property="module.granite.basedir" file="${ant.file}" />
+
+	<property name="javac.args.granite" value="${javac.args}" />
+
+	<property name="granite.build.dir" value="${module.granite.basedir}/build/" />
+	<property name="granite.output.dir" value="${granite.build.dir}/classes" />
+	<property name="granite.drop.dir" value="${module.granite.basedir}/drop" />
+	<property name="granite.lib.dir" value="${module.granite.basedir}/lib" />
+	<property name="granite.src.dir" value="${module.granite.basedir}/src/" />
+
+	<path id="granite.module.bootclasspath">
+		<!-- Paths to be included in compilation bootclasspath -->
+	</path>
+
+	<property name="module.jdk.home.granite" value="${project.jdk.home}" />
+	<property name="module.jdk.classpath.granite" value="${project.jdk.classpath}" />
+
+	<path id="granite.module.classpath">
+		<path refid="${module.jdk.classpath.granite}" />
+		<pathelement location="${module.granite.basedir}/../trident/drop/trident.jar" />
+		<pathelement location="${granite.lib.dir}/jdom.jar" />
+	</path>
+
+	<patternset id="excluded.from.module.granite" />
+
+	<patternset id="excluded.from.compilation.granite">
+		<patternset refid="excluded.from.module.granite" />
+		<patternset refid="javac.excluded" />
+	</patternset>
+
+	<path id="granite.module.sourcepath">
+		<dirset dir="${granite.src.dir}">
+			<include name="org" />
+		</dirset>
+	</path>
+
+<!--	
+    <taskdef name="wsimport" classname="com.sun.tools.ws.ant.WsImport">
+    </taskdef>
+
+	<target name="generate.amazon.jar">
+		<delete dir="${module.granite.basedir}/amazontemp" />
+		<wsimport wsdl="http://ecs.amazonaws.com/AWSECommerceService/AWSECommerceService.wsdl" sourcedestdir="${module.granite.basedir}/amazontemp/src" destdir="${module.granite.basedir}/amazontemp/classes" package="com.ECS.client.jax" />
+		<delete file="${granite.lib.dir}/amazon.jar" />
+		<jar compress="true" destfile="${granite.lib.dir}/amazon.jar">
+			<fileset dir="${module.granite.basedir}/amazontemp/classes" />
+		</jar>
+        <delete dir="${module.granite.basedir}/amazontemp" />
+	</target>
+-->
+	
+	<target name="compile.module.granite" depends="compile.module.granite.production" description="compile module granite" />
+
+	<target name="compile.module.granite.production" description="compile module granite production classes">
+		<mkdir dir="${granite.output.dir}" />
+		<javac source="${javac.source}" target="${javac.target}" encoding="${javac.encoding}" destdir="${granite.output.dir}" debug="${javac.debug}" nowarn="${javac.generate.no.warnings}" memoryMaximumSize="${javac.max.memory}" fork="true" executable="${module.jdk.home.granite}/bin/javac">
+			<compilerarg line="${javac.args.granite}" />
+			<bootclasspath refid="granite.module.bootclasspath" />
+			<classpath refid="granite.module.classpath" />
+			<src refid="granite.module.sourcepath" />
+			<patternset refid="excluded.from.compilation.granite" />
+		</javac>
+		<copy todir="${granite.output.dir}">
+			<fileset dir="${granite.src.dir}">
+				<patternset refid="javac.resources" />
+				<type type="file" />
+				<patternset refid="excluded.from.compilation.granite" />
+			</fileset>
+		</copy>
+	</target>
+
+	<target name="clean.module.granite" description="cleanup module">
+		<delete dir="${granite.output.dir}" />
+	</target>
+
+	<target name="init" description="Build initialization">
+		<!-- Perform any build initialization in this target -->
+	</target>
+
+	<target name="jar-bin" description="create runtime jar">
+		<mkdir dir="${granite.drop.dir}" />
+		<delete file="${granite.drop.dir}/granite.jar" />
+		<jar compress="true" destfile="${granite.drop.dir}/granite.jar">
+			<fileset dir="${granite.output.dir}/" />
+			<manifest>
+				<attribute name="granite-BuildStamp" value="${build.time}" />
+				<attribute name="Main-Class" value="org.pushingpixels.granite.DemoApp" />
+				<attribute name="Class-Path" value="granite.jar ../../trident/drop/trident.jar ../lib/amazon.jar" />
+			</manifest>
+		</jar>
+	</target>
+
+	<target name="distro" description="create distribution">
+		<delete file="${module.granite.basedir}/granite-all.zip" />
+		<zip destfile="${module.granite.basedir}/granite-all.zip" compress="true">
+			<fileset dir="${module.granite.basedir}">
+                <include name="src/**" />
+                <include name="lib/**" />
+				<include name="build*.xml" />
+				<include name="build*.properties" />
+			</fileset>
+		</zip>
+	</target>
+
+	<target name="timestamp">
+		<tstamp>
+			<format property="build.time" pattern="MMMM d, yyyy hh:mm:ss z" />
+		</tstamp>
+		<echo message="Beginning build: ${build.time}" />
+		<echo message="Java home: ${java.home}" />
+		<echo message="Java version: ${ant.java.version}" />
+		<echo message="Ant version: ${ant.version}" />
+		<echo message="JavaC home: ${jdk.home}" />
+	</target>
+
+	<target name="jar" depends="jar-bin" description="create all jars" />
+
+	<target name="clean" depends="clean.module.granite" description="cleanup all" />
+
+	<target name="all" depends="timestamp, init, clean, compile.module.granite, jar, distro" description="build all" />
+</project>
